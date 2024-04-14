@@ -1,5 +1,8 @@
 import Spaceship from '../objects/Spaceship.js';
 import Asteroid from '../objects/Asteroid.js';
+import WinBanner from '../objects/WinBanner.js';
+
+let numOfAsteroids = 4;
 
 export default class MainScene {
   constructor() {
@@ -9,16 +12,26 @@ export default class MainScene {
     this.spaceship = new Spaceship();
     this.scene.add(this.spaceship.mesh);
     this.asteroids = [];
+    this.winBanner = null;
 
-    for (let i = 0; i < 10; i++) {
-      const asteroid = new Asteroid();
-      this.scene.add(asteroid.mesh);
-      this.asteroids.push(asteroid);
+    if (numOfAsteroids++ > 20) {
+      const winBanner = new WinBanner();
+      this.scene.add(winBanner.mesh);
+      this.winBanner = winBanner;
+    } else {
+      for (let i = 0; i < numOfAsteroids; i++) {
+        const asteroid = new Asteroid();
+        this.scene.add(asteroid.mesh);
+        this.asteroids.push(asteroid);
+      }
     }
   }
 
   update(keyboardState) {
     this.spaceship.update(keyboardState);
     this.asteroids.forEach(asteroid => asteroid.update());
+    if (this.winBanner) {
+      this.winBanner.update(keyboardState);
+    }
   }
 }
