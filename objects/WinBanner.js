@@ -1,10 +1,11 @@
 export default class WinBanner {
-  constructor() {
+  constructor(spaceship) {
     const geometry = new THREE.BoxGeometry(1, 1, 0.1);
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.position.set(0, 2, -5); // Set initial position
     this.velocity = new THREE.Vector3(0.1, 0, 0.1); // Set initial velocity
+    this.spaceship = spaceship;
   }
 
   update(keyboardState) {

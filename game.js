@@ -1,12 +1,14 @@
 import MainScene from './scenes/MainScene.js';
 import InputHandler from './utils/InputHandler.js';
+import StateManager from './utils/StateManager.js';
 
-const scene = new MainScene();
+const stateManager = new StateManager();
+const scene = new MainScene(stateManager);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
 const inputHandler = new InputHandler();
+
 
 function animate() {
   requestAnimationFrame(animate);
