@@ -1,6 +1,8 @@
+import * as THREE from '../three.module.min.js';
 import Spaceship from '../objects/Spaceship.js';
 import Asteroid from '../objects/Asteroid.js';
-import WinBanner from '../objects/WinBanner.js';
+import TextManager from '../objects/TextRenderer.js';
+import CollisionManager from '../utils/CollisionManager.js';
 
 export default class MainScene {
   constructor(stateManager) {
@@ -10,86 +12,125 @@ export default class MainScene {
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.z = 10;
     
+    // INIT FOG
+    this.scene.fogExp = new THREE.FogExp2(0x000000, 0.008);
+    this.scene.fog = new THREE.Fog(0x000000, 50, 100);
+
     // INIT STATE
     this.state = stateManager;
     this.winBanner = null;
     
+
+
     // INIT SPACESHIP
     this.spaceship = new Spaceship();
-    this.scene.add(this.spaceship.mesh);
+    this.scene.add(this.spaceship.group);
 
-    // INIT ASTEROIDS
+    // INIT COLLISION MANAGER
+    this.collisionManager = new CollisionManager(this.spaceship, [], this.state);
+
+    // INIT ASTEROIDS ARRAY
     this.asteroids = [];
-    this.createAsteroids(5);
+
+    // TEXT
+    this.textManager = new TextManager(this.scene, this.collisionManager);
+    this.generateText('Spaced Out\nBy Nick', 'green', { size: 3 });
+  }
+
+  generateText(text, color='green', options = {}) {
+    this.textManager.loadFontAndCreateText({
+      text: text, color: color, ...options
+    });
   }
 
   createAsteroids(qty) {
     for (let i = 0; i < qty; i++) {
-      // while(
-      //   this.state.getTime() <
-      //   this.state.lastAsteroidSpawnTime + this.state.asteroidSpawnDelay
-      // ) {
-      //     console.log('waiting...', this.state.lastAsteroidSpawnTime + this.state.asteroidSpawnDelay);
-      //   }
-
         console.log('Spawning asteroid');
         const asteroid = new Asteroid();
         this.scene.add(asteroid.mesh);
+        this.collisionManager.addCollider(asteroid);
         this.asteroids.push(asteroid);
         this.state.numOfAsteroids = this.asteroids.length;
         this.state.lastAsteroidSpawnTime = this.state.time;
+        this.state.resetNextSpawnTime();
     }
 
     // Update state with current count
     return this.asteroids;
   }
 
-  updateAsteroids() {
+  updateAsteroids(deltaTime) {
     for (let i = this.asteroids.length - 1; i >= 0; i--) {
-      const asteroidDestroyed = this.asteroids[i].update();
+      const asteroidDestroyed = this.asteroids[i].update(deltaTime);
       if (asteroidDestroyed) {
+        this.collisionManager.removeCollider(this.asteroids[i]);
         this.scene.remove(this.asteroids[i].mesh);
         this.asteroids.splice(i, 1);
       }
     }
   }
 
+  fadeOutAsteroids() {
+    this.asteroids.forEach((asteroid) => {
+      asteroid.startFading();
+    });
+  }
 
-  update(keyboardState) {
+
+  update(keyboardState, deltaTime) {
     this.state.time += 1;
+    const stateUpdates = this.state.updateLevel();
     this.spaceship.update(keyboardState);
-    this.updateAsteroids();
+    this.updateAsteroids(deltaTime);
+    this.collisionManager.update();
 
     if (this.state.gameRunning) {
-
-      const randDelay = this.state.getRandDelayInRange();
-
-      if (this.state.numOfAsteroids > this.state.maxNumberOfAsteroids) {
-        const winBanner = new WinBanner(this.spaceship);
-        this.scene.add(winBanner.mesh);
-        this.winBanner = winBanner;
-        this.state.gameRunning = false;
-      } else if (this.state.lastAsteroidSpawnTime + randDelay < this.state.time) {
+      if (this.state.time >= this.state.nextAsteroidSpawnTime) {
         this.createAsteroids(1);
-        console.log(`
-        LAST SPAWN TIME: ${this.state.lastAsteroidSpawnTime}
-
-        RAND SPAWN DELAY: ${randDelay}
-
-        SPAWN DELAY MAX: ${this.state.asteroidSpawnDelay}
-
-        CURRENT TIME: ${this.state.time}
-        `);
-
-        // DECREASE DELAY BETWEEN ASTEROID SPAWNS BY 1 EVERY TIME ASTEROID SPAWNS
-        if (this.state.asteroidSpawnDelay > this.state.spawnDelayMin) {
-          this.state.asteroidSpawnDelay = this.state.asteroidSpawnDelay - this.state.spawnDelayDecUnit;
-        }
       }
 
-
+      if (stateUpdates) {
+        this.generateText(`Level ${stateUpdates}`, 'red');
+      }
     }
-   
+
+    if (!this.state.gameEnded) {
+      if (this.state.totalLives > 0 && this.state.level === 10) {
+        this.generateText(`YOU WON THE GAME WITH ${this.state.score} POINTS`, 'green');
+        this.state.gameRunning = false;
+        this.state.gameEnded = true;
+        this.state.gameEndTime = this.state.time;
+        this.fadeOutAsteroids();
+      } else if (this.state.totalLives <= 0) {
+        this.generateText(`YOU LOST!`, 'red');
+        this.spaceship.flashRed(true);
+        this.state.gameRunning = false;
+        this.state.gameEnded = true;
+        this.state.gameEndTime = this.state.time;
+        this.fadeOutAsteroids();
+      }
+    }
+
+    if (
+      this.state.gameEnded &&
+      this.state.time >= this.state.gameEndTime + this.state.gameEndFollowUpTime
+    ) {
+      const followUps = [
+        'Why are you still here...',
+        'Go home...',
+        'The game is over...',
+        'Refresh if you wanna play again...'
+      ];
+
+      this.generateText(followUps[this.state.gameEndFollowUpTextIter++], 'purple', { size: 2 });
+      this.state.gameEndTime += this.state.gameEndFollowUpTime;
+      if (this.state.gameEndFollowUpTextIter > 3) {
+        this.state.gameEndFollowUpTextIter = 0;
+      }
+    }
+
+    this.textManager.update(keyboardState);
+
     if (this.winBanner) {
       this.winBanner.update(keyboardState);
     }
