@@ -1,5 +1,5 @@
-import * as THREE from '../three.module.min.js';
-import { GLTFLoader } from '../gltfloader.js';
+import * as THREE from '../../lib/three.module.min.js';
+import { GLTFLoader } from '../../lib/gltfloader.js';
 
 export default class Spaceship {
   constructor() {
@@ -7,7 +7,7 @@ export default class Spaceship {
     this.velocity = new THREE.Vector2(0, 0);
     this.acceleration = new THREE.Vector2(0.005, 0.005);
     this.maxSpeed = 0.1;
-    this.loadModel('objects/spaceship.gltf');
+    this.loadModel('client/objects/spaceship.gltf');
   }
 
   loadModel(path) {

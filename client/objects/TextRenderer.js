@@ -1,5 +1,5 @@
-import * as THREE from '../three.module.min.js';
-import { FontLoader } from '../fontloader.js';
+import * as THREE from '../../lib/three.module.min.js';
+import { FontLoader } from '../../lib/fontloader.js';
 
 
 class TextGeometry extends THREE.ExtrudeGeometry {

@@ -1,12 +1,15 @@
-import * as THREE from '../three.module.min.js';
+import * as THREE from '../../lib/three.module.min.js';
 import Spaceship from '../objects/Spaceship.js';
 import Asteroid from '../objects/Asteroid.js';
 import TextManager from '../objects/TextRenderer.js';
 import CollisionManager from '../utils/CollisionManager.js';
 
 export default class MainScene {
-  constructor(stateManager) {
-    
+  constructor(stateManager, server) {
+
+    // INIT CLIENT<-->SERVER EVENT EMITTER
+    this.server = server;
+
     // INIT CAMERA AND SCENE
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -23,17 +26,17 @@ export default class MainScene {
 
 
     // INIT SPACESHIP
-    this.spaceship = new Spaceship();
+    this.spaceship = new Spaceship(this.server);
     this.scene.add(this.spaceship.group);
 
     // INIT COLLISION MANAGER
-    this.collisionManager = new CollisionManager(this.spaceship, [], this.state);
+    this.collisionManager = new CollisionManager(this.spaceship, [], this.state, this.server);
 
     // INIT ASTEROIDS ARRAY
     this.asteroids = [];
 
     // TEXT
-    this.textManager = new TextManager(this.scene, this.collisionManager);
+    this.textManager = new TextManager(this.scene, this.collisionManager, this.server);
     this.generateText('Spaced Out\nBy Nick', 'green', { size: 3 });
   }
 
@@ -46,7 +49,7 @@ export default class MainScene {
   createAsteroids(qty) {
     for (let i = 0; i < qty; i++) {
         console.log('Spawning asteroid');
-        const asteroid = new Asteroid();
+        const asteroid = new Asteroid(this.server);
         this.scene.add(asteroid.mesh);
         this.collisionManager.addCollider(asteroid);
         this.asteroids.push(asteroid);
@@ -130,9 +133,5 @@ export default class MainScene {
     }
 
     this.textManager.update(keyboardState);
-
-    if (this.winBanner) {
-      this.winBanner.update(keyboardState);
-    }
   }
 }
